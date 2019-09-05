@@ -81,6 +81,9 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
         }
         setContentView(R.layout.activity_main);
         webView = findViewById(R.id.wb_view);
+        webView.setBackgroundColor(0);
+        webView.setBackgroundResource(R.drawable.icon_background);
+       // webView.setBackgroundColor(Color.RED);
         ButterKnife.bind(this);
         caculateManager.bindService(this, this, appKey, appSecret);
         initWebView();
@@ -177,7 +180,7 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
         } else {
             webView.getSettings().setLoadsImagesAutomatically(false);
         }
-        webView.setBackgroundResource(R.drawable.icon_background);
+
 
         // 开启Application H5 Caches 功能
         webView.getSettings().setAppCacheEnabled(false);
