@@ -83,7 +83,6 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
         webView = findViewById(R.id.wb_view);
         webView.setBackgroundColor(0);
         webView.setBackgroundResource(R.drawable.icon_background);
-       // webView.setBackgroundColor(Color.RED);
         ButterKnife.bind(this);
         caculateManager.bindService(this, this, appKey, appSecret);
         initWebView();
@@ -139,12 +138,89 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
 
 
     private void initWebView() {
-        webView.clearCache(true);
-        clearCash();
+//        webView.clearCache(true);
+//        clearCash();
+        webView.getSettings().setSupportMultipleWindows(true);
+        webView.getSettings().setLoadWithOverviewMode(true);
+
         webView.getSettings().setJavaScriptEnabled(true);//是否允许执行js，默认为false。设置true时，会提醒可能造成XSS漏洞
         //设置WebView缓存模式 默认断网情况下不缓存
         webView.getSettings().setCacheMode(WebSettings.LOAD_DEFAULT);
 
+        //断网情况下加载本地缓存
+        // webView.getSettings().setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
+
+        //让WebView支持DOM storage API
+        webView.getSettings().setDomStorageEnabled(true);
+
+        //让WebView支持缩放
+        webView.getSettings().setSupportZoom(true);
+
+        //启用WebView内置缩放功能
+        webView.getSettings().setBuiltInZoomControls(true);
+
+        //让WebView支持可任意比例缩放
+        webView.getSettings().setUseWideViewPort(true);
+
+
+        //让WebView支持播放插件
+        webView.getSettings().setPluginState(WebSettings.PluginState.ON);
+
+        //设置WebView使用内置缩放机制时，是否展现在屏幕缩放控件上
+        webView.getSettings().setDisplayZoomControls(false);
+
+        //设置在WebView内部是否允许访问文件
+        webView.getSettings().setAllowFileAccess(true);
+
+        //设置WebView的访问UserAgent
+
+        //设置脚本是否允许自动打开弹窗
+        webView.getSettings().setJavaScriptCanOpenWindowsAutomatically(true);
+
+        // 加快HTML网页加载完成速度
+        if (Build.VERSION.SDK_INT >= 19) {
+            webView.getSettings().setLoadsImagesAutomatically(true);
+        } else {
+            webView.getSettings().setLoadsImagesAutomatically(false);
+        }
+
+        webView.getSettings().setLayoutAlgorithm(WebSettings.LayoutAlgorithm.SINGLE_COLUMN);
+
+        // 开启Application H5 Caches 功能
+        webView.getSettings().setAppCacheEnabled(true);
+        webView.getSettings().setBlockNetworkImage(false);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            webView.getSettings().setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+        }
+
+        // 设置编码格式
+        webView.getSettings().setDefaultTextEncodingName("utf-8");
+        webView.setDownloadListener(new DownloadListener() {
+            @Override
+            public void onDownloadStart(String url, String userAgent, String contentDisposition, String mimeType, long contentLength) {
+                // H5中包含下载链接的话让外部浏览器去处理
+                //                Intent intent = new Intent(Intent.ACTION_VIEW);
+                //                intent.addCategory(Intent.CATEGORY_BROWSABLE);
+                //                intent.setData(Uri.parse(url));
+                //                startActivity(intent);
+                downLoadUrl = url;
+                downUserMimeType = mimeType;
+                downContentDisposition = contentDisposition;
+                getPermission();
+            }
+        });
+        webView.setWebChromeClient(webChromeClient);
+    }
+
+    private void initWebViewQuit() {
+        //        webView.clearCache(true);
+               clearCash();
+        webView.getSettings().setJavaScriptEnabled(true);//是否允许执行js，默认为false。设置true时，会提醒可能造成XSS漏洞
+        //设置WebView缓存模式 默认断网情况下不缓存
+        webView.getSettings().setCacheMode(WebSettings.LOAD_DEFAULT);
+
+
+        webView.getSettings().setLoadWithOverviewMode(true);
         //断网情况下加载本地缓存
         // webView.getSettings().setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
 
@@ -183,7 +259,7 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
 
 
         // 开启Application H5 Caches 功能
-        webView.getSettings().setAppCacheEnabled(false);
+        webView.getSettings().setAppCacheEnabled(true);
         webView.getSettings().setBlockNetworkImage(false);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             webView.getSettings().setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
@@ -258,7 +334,7 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
                         //退出
                         if (view.getId() == R.id.ll_logout) {
                             rlTopView.setVisibility(View.GONE);
-                            initWebView();
+                            initWebViewQuit();
                             // http://10.0.14.13:9080/investbpm/
                             //"https://invest.laiyifen.com:8001/investbpm/
                             LodaNewClient(serviceAddress + "menus/index", "");
@@ -280,13 +356,13 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
         CookieSyncManager.getInstance().sync(); // forces sync manager to sync now
         webView.setWebChromeClient(null);
         webView.setWebViewClient(null);
-        webView.getSettings().setJavaScriptEnabled(false);
+        webView.getSettings().setJavaScriptEnabled(true);
         webView.clearCache(true);
     }
 
     @Override
     protected void onDestroy() {
-        clearCash();
+       // clearCash();
         super.onDestroy();
         caculateManager.unbindService();
     }

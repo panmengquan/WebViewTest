@@ -30,15 +30,15 @@ android {
             applicationIdSuffix ".debug"
             signingConfig signingConfigs.debug
             manifestPlaceholders = [JPUSH_PKGNAME: defaultConfig.applicationId]
-            resValue "string", "app_name", "爱屋资本(测试)"
-            buildConfigField('String','SERVER_URL','"http://10.0.14.13:9080/investbpm/"')
-           // buildConfigField('String','SERVER_URL','"https://invest.laiyifen.com:8001/investbpm/"')
+            resValue "string", "app_name", "爱屋"
+           // buildConfigField('String','SERVER_URL','"http://10.0.14.13:9080/investbpm/"')
+         buildConfigField('String','SERVER_URL','"https://invest.laiyifen.com:8001/investbpm/"')
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
         release {
             minifyEnabled false
             applicationIdSuffix ".release"
-            resValue "string", "app_name", "爱屋资本"
+            resValue "string", "app_name", "爱屋"
             manifestPlaceholders = [JPUSH_PKGNAME: defaultConfig.applicationId]
             signingConfig signingConfigs.release
             buildConfigField('String','SERVER_URL','"https://invest.laiyifen.com:8001/investbpm/"')
@@ -47,7 +47,7 @@ android {
                 variant.outputs.all {
                     def fileName
                     def date = releaseTime()
-                    fileName = "爱屋资本${date}_${variant.versionName}.apk"
+                    fileName = "爱屋${date}_${variant.versionName}.apk"
                     outputFileName = fileName
                 }
             }
