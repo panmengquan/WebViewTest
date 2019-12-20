@@ -1,4 +1,4 @@
-package com.laiyifen.capital.inhouse;
+package com.laiyifen.capital.inhouse.utils;
 
 import android.content.ContentResolver;
 import android.content.Context;
@@ -9,6 +9,8 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
+
+import com.laiyifen.capital.inhouse.R;
 
 import java.io.File;
 import java.io.FileNotFoundException;

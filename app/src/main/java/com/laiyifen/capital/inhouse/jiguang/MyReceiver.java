@@ -6,12 +6,13 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 
+import com.laiyifen.capital.inhouse.MainActivity;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.Iterator;
 
-import cn.com.compass.group.main.ui.activity.MainActivity;
 import cn.jpush.android.api.JPushInterface;
 import cn.jpush.android.helper.Logger;
 

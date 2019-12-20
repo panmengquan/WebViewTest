@@ -1,4 +1,4 @@
-package com.laiyifen.capital.inhouse;
+package com.laiyifen.capital.inhouse.widgets;
 
 import android.content.Context;
 import android.graphics.Color;
@@ -8,6 +8,8 @@ import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.RelativeLayout;
+
+import com.laiyifen.capital.inhouse.R;
 
 
 public class SetPopView extends PopupWindow implements View.OnClickListener {

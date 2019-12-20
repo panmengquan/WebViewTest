@@ -31,9 +31,19 @@ import android.widget.Toast;
 
 import com.example.lyfloginlibrary.CaculateManager;
 import com.example.lyfloginlibrary.sync.SyncManager;
+import com.laiyifen.capital.inhouse.utils.DoloadUtils;
+import com.laiyifen.capital.inhouse.widgets.BottomDialog;
+import com.laiyifen.capital.inhouse.widgets.SetPopView;
+import com.squareup.okhttp.Callback;
+import com.squareup.okhttp.MediaType;
+import com.squareup.okhttp.OkHttpClient;
+import com.squareup.okhttp.Request;
+import com.squareup.okhttp.RequestBody;
+import com.squareup.okhttp.Response;
 
 import org.json.JSONObject;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -41,6 +51,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
+import cn.jpush.android.api.JPushInterface;
 import permissions.dispatcher.NeedsPermission;
 import permissions.dispatcher.OnNeverAskAgain;
 import permissions.dispatcher.OnPermissionDenied;
@@ -131,6 +142,23 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
                 super.onReceivedSslError(view, handler, error);
                 handler.proceed();
             }
+
+            //            @Nullable
+            //            @Override
+            //            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+            //                WebResourceResponse response = super.shouldInterceptRequest(view, request);
+            //                Map map = response.getResponseHeaders();
+            //                return super.;
+            //            }
+
+//            @Nullable
+//            @Override
+//            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+//                WebResourceResponse resourceResponse = super.shouldInterceptRequest(view, request);
+//                Map map =  resourceResponse.getResponseHeaders();
+//                String a;
+//                return super.shouldInterceptRequest(view, request);
+//            }
         });
         String url = serviceAddress + "menus/index";
         webView.loadUrl(serviceAddress + "menus/index");
@@ -138,8 +166,8 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
 
 
     private void initWebView() {
-//        webView.clearCache(true);
-//        clearCash();
+        //        webView.clearCache(true);
+        //        clearCash();
         webView.getSettings().setSupportMultipleWindows(true);
         webView.getSettings().setLoadWithOverviewMode(true);
 
@@ -214,7 +242,7 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
 
     private void initWebViewQuit() {
         //        webView.clearCache(true);
-               clearCash();
+        clearCash();
         webView.getSettings().setJavaScriptEnabled(true);//是否允许执行js，默认为false。设置true时，会提醒可能造成XSS漏洞
         //设置WebView缓存模式 默认断网情况下不缓存
         webView.getSettings().setCacheMode(WebSettings.LOAD_DEFAULT);
@@ -289,6 +317,16 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
         super.onResume();
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+        String registrationID = JPushInterface.getRegistrationID(this);
+        JPushInterface.setAlias(this, 1, registrationID);
+        if(!"".equals(registrationID)){
+            upLoadJpushId("00060433",registrationID);
+        }
+        Log.v("myTag","jpushid="+registrationID);
+    }
 
     @OnClick({R.id.iv_return, R.id.iv_select})
     public void myClick(View view) {
@@ -362,7 +400,7 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
 
     @Override
     protected void onDestroy() {
-       // clearCash();
+        // clearCash();
         super.onDestroy();
         caculateManager.unbindService();
     }
@@ -392,6 +430,7 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
         @Override
         public void onReceivedTitle(WebView view, String title) {
             super.onReceivedTitle(view, title);
+
             mTitle = title;
             if (title != null && "投资管理系统".equals(title)) {
             } else {
@@ -531,9 +570,6 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
                     case R.id.tv_makedefalt_email:
                         Uri uri = Uri.parse("mailto:" + address);
                         Intent intent = new Intent(Intent.ACTION_SENDTO, uri);
-                        //intent.putExtra(Intent.EXTRA_CC, email); // 抄送人
-                        // intent.putExtra(Intent.EXTRA_SUBJECT, "这是邮件的主题部分"); // 主题
-                        // intent.putExtra(Intent.EXTRA_TEXT, "这是邮件的正文部分"); // 正文
                         MainActivity.this.startActivity(Intent.createChooser(intent, "请选择邮件类应用"));
                         break;
                     case R.id.tv_cancle:
@@ -597,6 +633,36 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
     public void multiNeverAsk() {
         Toast.makeText(this, "已拒绝一个或以上权限，并不再询问", Toast.LENGTH_SHORT).show();
     }
-   
+    public void upLoadJpushId(String userid,String jpushRegistId) {
+        final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+        String url =serviceAddress+ "user/updateJpushDevice";
+        OkHttpClient client = new OkHttpClient();
+        Map map = new HashMap();
+        map.put("userid",userid);
+        map.put("jpushId",jpushRegistId);
+        map.put("osType","0");
+        String json = com.alibaba.fastjson.JSON.toJSONString(map,true);
+        RequestBody requestBody = RequestBody.create(JSON, json);
+        Request request = new Request.Builder()
+                .url(url)
+                .post(requestBody)
+                .build();
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Request request, IOException e) {
+                request.toString();
+
+            }
+            @Override
+            public void onResponse(Response response) throws IOException {
+
+                if (response.isSuccessful()) {
+                    String json = response.body().string();
+                    Log.i("HomeFragment", "json=" + json);
+
+                }
+            }
+        });
+    }
 
 }

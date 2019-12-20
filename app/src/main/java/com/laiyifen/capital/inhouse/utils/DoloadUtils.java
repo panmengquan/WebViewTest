@@ -1,4 +1,4 @@
-package com.laiyifen.capital.inhouse;
+package com.laiyifen.capital.inhouse.utils;
 
 import android.app.DownloadManager;
 import android.content.BroadcastReceiver;

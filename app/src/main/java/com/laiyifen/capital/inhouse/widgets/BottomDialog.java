@@ -1,4 +1,4 @@
-package com.laiyifen.capital.inhouse;
+package com.laiyifen.capital.inhouse.widgets;
 
 import android.app.Dialog;
 import android.content.Context;
@@ -8,6 +8,8 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.TextView;
+
+import com.laiyifen.capital.inhouse.R;
 
 import butterknife.ButterKnife;
 
