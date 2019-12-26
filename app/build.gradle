@@ -88,5 +88,7 @@ dependencies {
     //okhttp
     implementation 'com.squareup.okhttp:okhttp:2.7.5'
     implementation  'com.google.code.gson:gson:2.8.5'
+    //eventBus
+    implementation 'org.greenrobot:eventbus:3.1.1'
 
 }

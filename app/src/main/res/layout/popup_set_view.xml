@@ -62,15 +62,16 @@
                 android:layout_marginLeft="10dp"
                 android:src="@mipmap/logout"
                 android:layout_height="20dp" />
+
             <TextView
                 android:id="@+id/tv_logout"
                 android:layout_width="match_parent"
                 android:layout_height="30dp"
                 android:gravity="center|left"
-                android:textSize="12sp"
                 android:paddingLeft="10dp"
                 android:paddingRight="10dp"
-                android:text="退出"/>
+                android:text="注销"
+                android:textSize="12sp"/>
 
         </LinearLayout>
 

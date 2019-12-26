@@ -8,7 +8,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.net.Uri;
-import android.net.http.SslError;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -19,8 +18,9 @@ import android.webkit.CookieManager;
 import android.webkit.CookieSyncManager;
 import android.webkit.DownloadListener;
 import android.webkit.JsResult;
-import android.webkit.SslErrorHandler;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -31,22 +31,31 @@ import android.widget.Toast;
 
 import com.example.lyfloginlibrary.CaculateManager;
 import com.example.lyfloginlibrary.sync.SyncManager;
+import com.laiyifen.capital.inhouse.bean.JPushMessageBean;
+import com.laiyifen.capital.inhouse.utils.CommonUtils;
 import com.laiyifen.capital.inhouse.utils.DoloadUtils;
+import com.laiyifen.capital.inhouse.utils.MyConstants;
+import com.laiyifen.capital.inhouse.utils.MyPreferencesUtils;
 import com.laiyifen.capital.inhouse.widgets.BottomDialog;
 import com.laiyifen.capital.inhouse.widgets.SetPopView;
-import com.squareup.okhttp.Callback;
-import com.squareup.okhttp.MediaType;
-import com.squareup.okhttp.OkHttpClient;
-import com.squareup.okhttp.Request;
-import com.squareup.okhttp.RequestBody;
-import com.squareup.okhttp.Response;
 
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.ProtocolException;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -81,11 +90,15 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
     private String downUserMimeType;
     private String downContentDisposition;
     private String downLoadUrl;
+    private String registrationID = "";
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        String myurl = getIntent().getStringExtra("myurl");
+        String title = getIntent().getStringExtra("title");
+        EventBus.getDefault().register(this);//注册
         if (Build.VERSION.SDK_INT >= 21) {
             View decorView = getWindow().getDecorView();
             decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
@@ -98,130 +111,37 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
         caculateManager.bindService(this, this, appKey, appSecret);
         initWebView();
         //initDialog();
-        webView.setWebViewClient(new WebViewClient() {
-            @Override
-            public boolean shouldOverrideUrlLoading(WebView view, String url) {
-                mUrl = url;
-                if (url != null && TextUtils.equals(url, "lyf://mipAuthLogin")) {
-                    if (caculateManager.IsToken()) {
-                        caculateManager.VerifyToken();
-                    }
-                    caculateManager.lyfLogin();
-                    return true;
-                }
-                if (url != null && url.contains("email://")) {
-                    Log.v("myTag", "email");
-                    String a = url;
-                    String email = url.substring(9, a.length());
-                    showEmalDilog(email);
-                    return true;
-                }
-                if (url != null && url.contains("tel:/")) {
-                    Log.v("myTag", "phone");
-                    String a = url;
-                    String phone = url.substring(6, a.length());
-                    showPhoneDilog(phone);
-                    return true;
-                }
-                view.loadUrl(url);
-                return true;
-            }
-
-            @Override
-            public void onPageFinished(WebView view, String url) {
-                super.onPageFinished(view, url);
-            }
-
-            @Override
-            public void onPageStarted(WebView view, String url, Bitmap favicon) {
-                super.onPageStarted(view, url, favicon);
-            }
-
-            @Override
-            public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
-                super.onReceivedSslError(view, handler, error);
-                handler.proceed();
-            }
-
-            //            @Nullable
-            //            @Override
-            //            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-            //                WebResourceResponse response = super.shouldInterceptRequest(view, request);
-            //                Map map = response.getResponseHeaders();
-            //                return super.;
-            //            }
-
-//            @Nullable
-//            @Override
-//            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-//                WebResourceResponse resourceResponse = super.shouldInterceptRequest(view, request);
-//                Map map =  resourceResponse.getResponseHeaders();
-//                String a;
-//                return super.shouldInterceptRequest(view, request);
-//            }
-        });
+        webView.setWebViewClient(new MyWebviewClient());
         String url = serviceAddress + "menus/index";
         webView.loadUrl(serviceAddress + "menus/index");
+
     }
 
 
     private void initWebView() {
-        //        webView.clearCache(true);
-        //        clearCash();
         webView.getSettings().setSupportMultipleWindows(true);
         webView.getSettings().setLoadWithOverviewMode(true);
-
         webView.getSettings().setJavaScriptEnabled(true);//是否允许执行js，默认为false。设置true时，会提醒可能造成XSS漏洞
-        //设置WebView缓存模式 默认断网情况下不缓存
         webView.getSettings().setCacheMode(WebSettings.LOAD_DEFAULT);
-
-        //断网情况下加载本地缓存
-        // webView.getSettings().setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
-
-        //让WebView支持DOM storage API
         webView.getSettings().setDomStorageEnabled(true);
-
-        //让WebView支持缩放
         webView.getSettings().setSupportZoom(true);
-
-        //启用WebView内置缩放功能
         webView.getSettings().setBuiltInZoomControls(true);
-
-        //让WebView支持可任意比例缩放
         webView.getSettings().setUseWideViewPort(true);
-
-
-        //让WebView支持播放插件
         webView.getSettings().setPluginState(WebSettings.PluginState.ON);
-
-        //设置WebView使用内置缩放机制时，是否展现在屏幕缩放控件上
         webView.getSettings().setDisplayZoomControls(false);
-
-        //设置在WebView内部是否允许访问文件
         webView.getSettings().setAllowFileAccess(true);
-
-        //设置WebView的访问UserAgent
-
-        //设置脚本是否允许自动打开弹窗
         webView.getSettings().setJavaScriptCanOpenWindowsAutomatically(true);
-
-        // 加快HTML网页加载完成速度
         if (Build.VERSION.SDK_INT >= 19) {
             webView.getSettings().setLoadsImagesAutomatically(true);
         } else {
             webView.getSettings().setLoadsImagesAutomatically(false);
         }
-
         webView.getSettings().setLayoutAlgorithm(WebSettings.LayoutAlgorithm.SINGLE_COLUMN);
-
-        // 开启Application H5 Caches 功能
         webView.getSettings().setAppCacheEnabled(true);
         webView.getSettings().setBlockNetworkImage(false);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             webView.getSettings().setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         }
-
-        // 设置编码格式
         webView.getSettings().setDefaultTextEncodingName("utf-8");
         webView.setDownloadListener(new DownloadListener() {
             @Override
@@ -315,17 +235,30 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
     @Override
     protected void onResume() {
         super.onResume();
-    }
 
+    }
+    @Override
+    protected void onNewIntent(Intent intent) {
+        //super.onNewIntent(intent);
+        super.onNewIntent(intent);
+
+        String myurl = intent.getStringExtra("myurl");
+        String title = intent.getStringExtra("title");
+
+        if(!"".equals(myurl) && myurl != null){
+            webView.loadUrl(myurl);
+        }
+    }
     @Override
     protected void onStart() {
         super.onStart();
-        String registrationID = JPushInterface.getRegistrationID(this);
-        JPushInterface.setAlias(this, 1, registrationID);
-        if(!"".equals(registrationID)){
-            upLoadJpushId("00060433",registrationID);
-        }
+        registrationID = JPushInterface.getRegistrationID(this);
         Log.v("myTag","jpushid="+registrationID);
+        JPushInterface.setAlias(this, 1, registrationID);
+                if(!"".equals(registrationID)){
+                    CommonUtils.upLoadJpushId("00060433",registrationID);
+                }
+
     }
 
     @OnClick({R.id.iv_return, R.id.iv_select})
@@ -356,18 +289,6 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
                             textIntent.putExtra(Intent.EXTRA_SUBJECT, mTitle);
                             textIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                             startActivity(Intent.createChooser(textIntent, "分享"));
-
-
-                            //分享图片
-                            //                             PicturlUtils.saveMyBitmap(MainActivity.this);
-                            //                             String path =  PicturlUtils.getResourcesUri(MainActivity.this,R.mipmap.ic_launcher);
-                            //
-                            //                            Intent imageIntent = new Intent(Intent.ACTION_SEND);
-                            //                            imageIntent.setType("image/*");
-                            //                            imageIntent.putExtra(Intent.EXTRA_TEXT, "【"+mTitle+"】\r"+mUrl);
-                            //                            imageIntent.putExtra(Intent.EXTRA_STREAM, Uri.parse("/storage/emulated/0/mypicture/aiwuicon.jpg"));
-                            //                            startActivity(Intent.createChooser(imageIntent, "分享"));
-
                         }
                         //退出
                         if (view.getId() == R.id.ll_logout) {
@@ -397,60 +318,28 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
         webView.getSettings().setJavaScriptEnabled(true);
         webView.clearCache(true);
     }
+    @Subscribe
+    public void getEventBus(JPushMessageBean jPushMessageBean) {
+      String a;
+        webView.clearCache(true);
+        if(!"".equals(jPushMessageBean.getUrl())){
+//            webView.setWebViewClient(new MyWebviewClient());
+            if(webView != null){
+                webView.loadUrl(jPushMessageBean.getUrl());
+            }
 
+        }
+
+    }
     @Override
     protected void onDestroy() {
         // clearCash();
         super.onDestroy();
+        EventBus.getDefault().unregister(this);
         caculateManager.unbindService();
     }
 
-    //WebChromeClient主要辅助WebView处理Javascript的对话框、网站图标、网站title、加载进度等
-    private WebChromeClient webChromeClient = new WebChromeClient() {
 
-
-        //不支持js的alert弹窗，需要自己监听然后通过dialog弹窗
-        @Override
-        public boolean onJsAlert(WebView webView, String url, String message, JsResult result) {
-            //注意:
-            //必须要这一句代码:result.confirm()表示:
-            //处理结果为确定状态同时唤醒WebCore线程
-            //否则不能继续点击按钮
-            result.confirm();
-            return true;
-        }
-
-        @Override
-        public void onProgressChanged(WebView view, int newProgress) {
-            super.onProgressChanged(view, newProgress);
-
-        }
-
-        //获取网页标题
-        @Override
-        public void onReceivedTitle(WebView view, String title) {
-            super.onReceivedTitle(view, title);
-
-            mTitle = title;
-            if (title != null && "投资管理系统".equals(title)) {
-            } else {
-                rlTopView.setVisibility(View.VISIBLE);
-                if (title != null) {
-                    tvTitle.setText(title);
-                }
-                if (webView.canGoBack()) {
-                    ivReturn.setVisibility(View.VISIBLE);
-                } else {
-                    ivReturn.setVisibility(View.INVISIBLE);
-                }
-            }
-            Log.i("myTag", "网页标题:" + title);
-        }
-
-        //加载进度回调
-
-
-    };
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
@@ -483,13 +372,15 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
             JSONObject object = new JSONObject(Msg);
             JSONObject object1 = new JSONObject(object.getString("data"));
             String userId = object1.getString("user_id");
+            MyPreferencesUtils.putString(MyConstants.USER_ID,userId);
+            if(!"".equals(registrationID) && !"".equals(userId)){
+                CommonUtils.upLoadJpushId(userId,registrationID);
+            }
             Log.v("myTag", "userId=" + userId);
             LodaNewClient(serviceAddress + "portal", userId);
         } catch (Exception e) {
 
         }
-        Log.v("MainActivity", Msg);
-        Log.v("myTag", "msg=" + Msg);
     }
 
     @Override
@@ -500,56 +391,7 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
     private void LodaNewClient(String url, String userId) {
         Map<String, String> map = new HashMap();
         map.put("iv-user", userId);
-        webView.setWebViewClient(new WebViewClient() {
-            @Override
-            public boolean shouldOverrideUrlLoading(WebView view, String url) {
-
-                if (url != null && TextUtils.equals(url, "lyf://mipAuthLogin")) {
-                    if (caculateManager.IsToken()) {
-                        caculateManager.VerifyToken();
-                    }
-                    caculateManager.lyfLogin();
-                    return true;
-                }
-                if (url != null && url.contains("email://")) {
-                    Log.v("myTag", "email");
-                    String a = url;
-                    String email = url.substring(9, a.length());
-                    showEmalDilog(email);
-                    return true;
-                }
-                if (url != null && url.contains("tel://")) {
-                    Log.v("myTag", "phone");
-                    String a = url;
-                    String phone = url.substring(6, a.length());
-                    showPhoneDilog(phone);
-                    return true;
-                }
-                view.loadUrl(url);
-                return true;
-
-            }
-
-
-            @Override
-            public void onPageFinished(WebView view, String url) {
-                super.onPageFinished(view, url);
-                //  hideProgress();
-
-            }
-
-            @Override
-            public void onPageStarted(WebView view, String url, Bitmap favicon) {
-                super.onPageStarted(view, url, favicon);
-            }
-
-            @Override
-            public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
-                super.onReceivedSslError(view, handler, error);
-                handler.proceed();
-            }
-        });
-        //http://10.0.14.13:9080/investbpm/portal
+        webView.setWebViewClient(new MyWebviewClient());
         webView.loadUrl(url, map);
     }
 
@@ -633,36 +475,145 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
     public void multiNeverAsk() {
         Toast.makeText(this, "已拒绝一个或以上权限，并不再询问", Toast.LENGTH_SHORT).show();
     }
-    public void upLoadJpushId(String userid,String jpushRegistId) {
-        final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
-        String url =serviceAddress+ "user/updateJpushDevice";
-        OkHttpClient client = new OkHttpClient();
-        Map map = new HashMap();
-        map.put("userid",userid);
-        map.put("jpushId",jpushRegistId);
-        map.put("osType","0");
-        String json = com.alibaba.fastjson.JSON.toJSONString(map,true);
-        RequestBody requestBody = RequestBody.create(JSON, json);
-        Request request = new Request.Builder()
-                .url(url)
-                .post(requestBody)
-                .build();
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(Request request, IOException e) {
-                request.toString();
-
+    private class  MyWebviewClient extends WebViewClient{
+        @Override
+        public boolean shouldOverrideUrlLoading(WebView view, String url) {
+            mUrl = url;
+            if (url != null && TextUtils.equals(url, "lyf://mipAuthLogin")) {
+                if (caculateManager.IsToken()) {
+                    caculateManager.VerifyToken();
+                }
+                caculateManager.lyfLogin();
+                return true;
             }
-            @Override
-            public void onResponse(Response response) throws IOException {
+            if (url != null && url.contains("email://")) {
+                Log.v("myTag", "email");
+                String a = url;
+                String email = url.substring(9, a.length());
+                showEmalDilog(email);
+                return true;
+            }
+            if (url != null && url.contains("tel:/")) {
+                Log.v("myTag", "phone");
+                String a = url;
+                String phone = url.substring(6, a.length());
+                showPhoneDilog(phone);
+                return true;
+            }
+            view.loadUrl(url);
+            return true;
+        }
 
-                if (response.isSuccessful()) {
-                    String json = response.body().string();
-                    Log.i("HomeFragment", "json=" + json);
+        @Override
+        public void onPageFinished(WebView view, String url) {
+            super.onPageFinished(view, url);
+        }
 
+        @Override
+        public void onPageStarted(WebView view, String url, Bitmap favicon) {
+            super.onPageStarted(view, url, favicon);
+        }
+
+        @Nullable
+        @Override
+        public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+            //  sendHttp(request.getUrl().toString());
+            return super.shouldInterceptRequest(view, request);
+        }
+    }
+    //WebChromeClient主要辅助WebView处理Javascript的对话框、网站图标、网站title、加载进度等
+    private WebChromeClient webChromeClient = new WebChromeClient() {
+
+
+        //不支持js的alert弹窗，需要自己监听然后通过dialog弹窗
+        @Override
+        public boolean onJsAlert(WebView webView, String url, String message, JsResult result) {
+            //注意:
+            //必须要这一句代码:result.confirm()表示:
+            //处理结果为确定状态同时唤醒WebCore线程
+            //否则不能继续点击按钮
+            result.confirm();
+            return true;
+        }
+
+        @Override
+        public void onProgressChanged(WebView view, int newProgress) {
+            super.onProgressChanged(view, newProgress);
+
+        }
+
+        //获取网页标题
+        @Override
+        public void onReceivedTitle(WebView view, String title) {
+            super.onReceivedTitle(view, title);
+
+            mTitle = title;
+            if (title != null && "投资管理系统".equals(title)) {
+            } else {
+                rlTopView.setVisibility(View.VISIBLE);
+                if (title != null) {
+                    tvTitle.setText(title);
+                }
+                if (webView.canGoBack()) {
+                    ivReturn.setVisibility(View.VISIBLE);
+                } else {
+                    ivReturn.setVisibility(View.INVISIBLE);
                 }
             }
-        });
-    }
+            Log.i("myTag", "网页标题:" + title);
+        }
+    };
 
+    private void sendHttp(final String urlStr){
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                HttpURLConnection connection = null;
+                BufferedReader reader = null;
+                try {
+                    URL url = new URL(urlStr);
+                    connection = (HttpURLConnection) url.openConnection();
+                    //设置请求方法
+                    connection.setRequestMethod("POST");
+                    connection.setRequestProperty("username","00060433");
+                    connection.setRequestProperty("password","lyfbpm2018");
+                    //设置连接超时时间（毫秒）
+                    connection.setConnectTimeout(5000);
+                    //设置读取超时时间（毫秒）
+                    connection.setReadTimeout(5000);
+
+                    //返回输入流
+                    InputStream in = connection.getInputStream();
+
+                    //读取输入流
+                    reader = new BufferedReader(new InputStreamReader(in));
+                    StringBuilder result = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        result.append(line);
+                    }
+                    String str = result.toString();
+                    WebResourceResponse  webResourceResponse = new WebResourceResponse("text/html", "utf-8", new ByteArrayInputStream(result.toString().getBytes()));
+                    String str1 = result.toString();
+                } catch (MalformedURLException e) {
+                    e.printStackTrace();
+                } catch (ProtocolException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } finally {
+                    if (reader != null) {
+                        try {
+                            reader.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    if (connection != null) {//关闭连接
+                        connection.disconnect();
+                    }
+                }
+            }
+        }).start();
+    }
 }

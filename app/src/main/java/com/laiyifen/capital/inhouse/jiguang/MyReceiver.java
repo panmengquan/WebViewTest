@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.laiyifen.capital.inhouse.MainActivity;
 
@@ -30,8 +31,11 @@ public class MyReceiver extends BroadcastReceiver {
 	public void onReceive(Context context, Intent intent) {
 		try {
 			Bundle bundle = intent.getExtras();
+			String message  = bundle.getString(JPushInterface.EXTRA_ALERT);
+			String a = printBundle(bundle);
+			Log.v("myTag","MyReceiver.a=="+a);
 			Logger.d(TAG, "[MyReceiver] onReceive - " + intent.getAction() + ", extras: " + printBundle(bundle));
-
+			String extras = bundle.getString(JPushInterface.EXTRA_EXTRA);
 			if (JPushInterface.ACTION_REGISTRATION_ID.equals(intent.getAction())) {
 				String regId = bundle.getString(JPushInterface.EXTRA_REGISTRATION_ID);
 				Logger.d(TAG, "[MyReceiver] 接收Registration Id : " + regId);
