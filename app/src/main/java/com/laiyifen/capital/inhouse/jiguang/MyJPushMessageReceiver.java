@@ -5,9 +5,12 @@ import android.content.Intent;
 import android.util.Log;
 
 import com.laiyifen.capital.inhouse.MainActivity;
+import com.laiyifen.capital.inhouse.bean.JPushMessageBean;
+import com.laiyifen.capital.inhouse.utils.DabgeUtil;
 import com.laiyifen.capital.inhouse.utils.MyConstants;
 import com.laiyifen.capital.inhouse.utils.MyPreferencesUtils;
 
+import org.greenrobot.eventbus.EventBus;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -19,11 +22,23 @@ public class MyJPushMessageReceiver  extends JPushMessageReceiver {
     public void onNotifyMessageArrived(Context context, NotificationMessage notificationMessage) {
         super.onNotifyMessageArrived(context, notificationMessage);
         Log.v("myTag","onNotifyMessageArrived");
+
         try {
             String notifiMessage =  notificationMessage.notificationExtras;
             JSONObject json = new JSONObject(notifiMessage);
             String badge = json.getString("badge");
             String url = json.getString("url");
+            String title = notificationMessage.notificationTitle;
+            DabgeUtil.SetDabge(context,Integer.parseInt(badge));
+            if(!"".equals(MyPreferencesUtils.getString(MyConstants.USER_ID))) {
+                JPushMessageBean jPushMessageBean = new JPushMessageBean();
+                jPushMessageBean.setTitle(title);
+                jPushMessageBean.setUrl(url);
+                jPushMessageBean.setBadge(badge);
+                EventBus.getDefault().post(jPushMessageBean);
+            }else {
+                DabgeUtil.SetDabge(context,Integer.parseInt(badge));
+            }
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -33,6 +48,7 @@ public class MyJPushMessageReceiver  extends JPushMessageReceiver {
     @Override
     public void onNotifyMessageOpened(Context context, NotificationMessage notificationMessage) {
         super.onNotifyMessageOpened(context, notificationMessage);
+        DabgeUtil.SetDabge(context,0);
         try {
             String notifiMessage =  notificationMessage.notificationExtras;
             JSONObject json = new JSONObject(notifiMessage);

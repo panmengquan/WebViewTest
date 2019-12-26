@@ -37,10 +37,12 @@ import com.laiyifen.capital.inhouse.utils.DoloadUtils;
 import com.laiyifen.capital.inhouse.utils.MyConstants;
 import com.laiyifen.capital.inhouse.utils.MyPreferencesUtils;
 import com.laiyifen.capital.inhouse.widgets.BottomDialog;
+import com.laiyifen.capital.inhouse.widgets.IOSDialog;
 import com.laiyifen.capital.inhouse.widgets.SetPopView;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -318,15 +320,12 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
         webView.getSettings().setJavaScriptEnabled(true);
         webView.clearCache(true);
     }
-    @Subscribe
+    @Subscribe(threadMode = ThreadMode.MAIN)
     public void getEventBus(JPushMessageBean jPushMessageBean) {
       String a;
-        webView.clearCache(true);
         if(!"".equals(jPushMessageBean.getUrl())){
 //            webView.setWebViewClient(new MyWebviewClient());
-            if(webView != null){
-                webView.loadUrl(jPushMessageBean.getUrl());
-            }
+            surePayDialog( jPushMessageBean);
 
         }
 
@@ -615,5 +614,24 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
                 }
             }
         }).start();
+    }
+
+    private void surePayDialog(JPushMessageBean jPushMessageBean) {
+        final IOSDialog dialog = new IOSDialog(MainActivity.this, R.style.customDialog,R.layout.ios_dilog_notitle);
+        dialog.show();
+        TextView tvOk = dialog.findViewById(R.id.ok);
+        TextView cancel = dialog.findViewById(R.id.cancel);
+        TextView tvMessage =  dialog.findViewById(R.id.tv_ios_message);
+        tvMessage.setText(jPushMessageBean.getTitle()+"");
+
+        tvOk.setOnClickListener(v -> { //本次
+            dialog.dismiss();
+            //调用订单结算接口
+            webView.loadUrl(jPushMessageBean.getUrl());
+
+        });
+        cancel.setOnClickListener(v -> { //上笔
+            dialog.dismiss();
+        });
     }
 }
