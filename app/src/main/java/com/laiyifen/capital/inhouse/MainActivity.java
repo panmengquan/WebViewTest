@@ -33,9 +33,8 @@ import com.example.lyfloginlibrary.CaculateManager;
 import com.example.lyfloginlibrary.sync.SyncManager;
 import com.laiyifen.capital.inhouse.bean.JPushMessageBean;
 import com.laiyifen.capital.inhouse.utils.CommonUtils;
+import com.laiyifen.capital.inhouse.utils.DabgeUtil;
 import com.laiyifen.capital.inhouse.utils.DoloadUtils;
-import com.laiyifen.capital.inhouse.utils.MyConstants;
-import com.laiyifen.capital.inhouse.utils.MyPreferencesUtils;
 import com.laiyifen.capital.inhouse.widgets.BottomDialog;
 import com.laiyifen.capital.inhouse.widgets.IOSDialog;
 import com.laiyifen.capital.inhouse.widgets.SetPopView;
@@ -237,6 +236,7 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
     @Override
     protected void onResume() {
         super.onResume();
+        DabgeUtil.SetDabge(MainActivity.this,0);
 
     }
     @Override
@@ -257,9 +257,9 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
         registrationID = JPushInterface.getRegistrationID(this);
         Log.v("myTag","jpushid="+registrationID);
         JPushInterface.setAlias(this, 1, registrationID);
-                if(!"".equals(registrationID)){
-                    CommonUtils.upLoadJpushId("00060433",registrationID);
-                }
+        if(!"".equals(registrationID) ){
+            CommonUtils.upLoadJpushId("00060433",registrationID);
+        }
 
     }
 
@@ -299,6 +299,7 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
                             // http://10.0.14.13:9080/investbpm/
                             //"https://invest.laiyifen.com:8001/investbpm/
                             LodaNewClient(serviceAddress + "menus/index", "");
+                            MyApplication.setUserId("");
                         }
                     }
                 });
@@ -324,7 +325,6 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
     public void getEventBus(JPushMessageBean jPushMessageBean) {
       String a;
         if(!"".equals(jPushMessageBean.getUrl())){
-//            webView.setWebViewClient(new MyWebviewClient());
             surePayDialog( jPushMessageBean);
 
         }
@@ -371,11 +371,11 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
             JSONObject object = new JSONObject(Msg);
             JSONObject object1 = new JSONObject(object.getString("data"));
             String userId = object1.getString("user_id");
-            MyPreferencesUtils.putString(MyConstants.USER_ID,userId);
+           // MyPreferencesUtils.putString(MyConstants.USER_ID,userId);
+            MyApplication.setUserId(userId);
             if(!"".equals(registrationID) && !"".equals(userId)){
                 CommonUtils.upLoadJpushId(userId,registrationID);
             }
-            Log.v("myTag", "userId=" + userId);
             LodaNewClient(serviceAddress + "portal", userId);
         } catch (Exception e) {
 

@@ -5,10 +5,9 @@ import android.content.Intent;
 import android.util.Log;
 
 import com.laiyifen.capital.inhouse.MainActivity;
+import com.laiyifen.capital.inhouse.MyApplication;
 import com.laiyifen.capital.inhouse.bean.JPushMessageBean;
 import com.laiyifen.capital.inhouse.utils.DabgeUtil;
-import com.laiyifen.capital.inhouse.utils.MyConstants;
-import com.laiyifen.capital.inhouse.utils.MyPreferencesUtils;
 
 import org.greenrobot.eventbus.EventBus;
 import org.json.JSONException;
@@ -30,7 +29,7 @@ public class MyJPushMessageReceiver  extends JPushMessageReceiver {
             String url = json.getString("url");
             String title = notificationMessage.notificationTitle;
             DabgeUtil.SetDabge(context,Integer.parseInt(badge));
-            if(!"".equals(MyPreferencesUtils.getString(MyConstants.USER_ID))) {
+            if(!"".equals(MyApplication.getUserId())) {
                 JPushMessageBean jPushMessageBean = new JPushMessageBean();
                 jPushMessageBean.setTitle(title);
                 jPushMessageBean.setUrl(url);
@@ -56,7 +55,8 @@ public class MyJPushMessageReceiver  extends JPushMessageReceiver {
             String url = json.getString("url");
             String title = notificationMessage.notificationTitle;
 
-            if("".equals(MyPreferencesUtils.getString(MyConstants.USER_ID))) {
+            //MyPreferencesUtils.getString(MyConstants.USER_ID)
+            if("".equals(MyApplication.getUserId())) {
                 Intent intent = new Intent(context, MainActivity.class);
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP );
                 context.startActivity(intent);
