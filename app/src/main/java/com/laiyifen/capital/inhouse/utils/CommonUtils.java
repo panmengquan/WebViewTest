@@ -16,7 +16,7 @@ import java.util.Map;
 import static com.laiyifen.capital.inhouse.MainActivity.serviceAddress;
 
 public class CommonUtils {
-    public static void upLoadJpushId(String userid,String jpushRegistId) {
+    public static void upLoadJpushId(String userid,String jpushRegistId,String status) {
         final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
         String url =serviceAddress+ "user/updateJpushDevice";
         OkHttpClient client = new OkHttpClient();
@@ -24,6 +24,7 @@ public class CommonUtils {
         map.put("userid",userid);
         map.put("jpushId",jpushRegistId);
         map.put("osType","0");
+        map.put("status",status);
         String json = com.alibaba.fastjson.JSON.toJSONString(map,true);
         RequestBody requestBody = RequestBody.create(JSON, json);
         Request request = new Request.Builder()

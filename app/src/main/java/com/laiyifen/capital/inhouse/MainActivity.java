@@ -17,6 +17,7 @@ import android.view.View;
 import android.webkit.CookieManager;
 import android.webkit.CookieSyncManager;
 import android.webkit.DownloadListener;
+import android.webkit.JavascriptInterface;
 import android.webkit.JsResult;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
@@ -35,6 +36,8 @@ import com.laiyifen.capital.inhouse.bean.JPushMessageBean;
 import com.laiyifen.capital.inhouse.utils.CommonUtils;
 import com.laiyifen.capital.inhouse.utils.DabgeUtil;
 import com.laiyifen.capital.inhouse.utils.DoloadUtils;
+import com.laiyifen.capital.inhouse.utils.MyConstants;
+import com.laiyifen.capital.inhouse.utils.MyPreferencesUtils;
 import com.laiyifen.capital.inhouse.widgets.BottomDialog;
 import com.laiyifen.capital.inhouse.widgets.IOSDialog;
 import com.laiyifen.capital.inhouse.widgets.SetPopView;
@@ -57,6 +60,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -97,8 +101,6 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        String myurl = getIntent().getStringExtra("myurl");
-        String title = getIntent().getStringExtra("title");
         EventBus.getDefault().register(this);//注册
         if (Build.VERSION.SDK_INT >= 21) {
             View decorView = getWindow().getDecorView();
@@ -117,9 +119,19 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
         webView.loadUrl(serviceAddress + "menus/index");
 
     }
-
-
+    //登录成功后js写法为: window.androidBridge.getIvUser("当js判断登录成功后,js返回给anroid的登录账号")
+    //如：<a onClick="window.androidBridge.getIvUser('00060433')" />
+    public class JsInterface {
+        @JavascriptInterface
+        public void getIvUser(String ivUser){
+            if(!"".equals(registrationID) ){
+                MyPreferencesUtils.putString(MyConstants.USER_ID,ivUser);
+                CommonUtils.upLoadJpushId(ivUser,registrationID,"1");
+            }
+        }
+    }
     private void initWebView() {
+        webView.addJavascriptInterface(new JsInterface(),"androidBridge");
         webView.getSettings().setSupportMultipleWindows(true);
         webView.getSettings().setLoadWithOverviewMode(true);
         webView.getSettings().setJavaScriptEnabled(true);//是否允许执行js，默认为false。设置true时，会提醒可能造成XSS漏洞
@@ -257,10 +269,10 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
         registrationID = JPushInterface.getRegistrationID(this);
         Log.v("myTag","jpushid="+registrationID);
         JPushInterface.setAlias(this, 1, registrationID);
-        if(!"".equals(registrationID) ){
-            CommonUtils.upLoadJpushId("00060433",registrationID);
-        }
 
+        if(!"".equals(registrationID) ){
+            CommonUtils.upLoadJpushId("00060433",registrationID,"1");
+        }
     }
 
     @OnClick({R.id.iv_return, R.id.iv_select})
@@ -296,8 +308,8 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
                         if (view.getId() == R.id.ll_logout) {
                             rlTopView.setVisibility(View.GONE);
                             initWebViewQuit();
-                            // http://10.0.14.13:9080/investbpm/
-                            //"https://invest.laiyifen.com:8001/investbpm/
+                            MyPreferencesUtils.putString(MyConstants.USER_ID,"");
+                            CommonUtils.upLoadJpushId(MyPreferencesUtils.getString(MyConstants.USER_ID),registrationID,"0");
                             LodaNewClient(serviceAddress + "menus/index", "");
                             MyApplication.setUserId("");
                         }
@@ -371,10 +383,9 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
             JSONObject object = new JSONObject(Msg);
             JSONObject object1 = new JSONObject(object.getString("data"));
             String userId = object1.getString("user_id");
-           // MyPreferencesUtils.putString(MyConstants.USER_ID,userId);
-            MyApplication.setUserId(userId);
+            MyPreferencesUtils.putString(MyConstants.USER_ID,userId);
             if(!"".equals(registrationID) && !"".equals(userId)){
-                CommonUtils.upLoadJpushId(userId,registrationID);
+                CommonUtils.upLoadJpushId(userId,registrationID,"1");
             }
             LodaNewClient(serviceAddress + "portal", userId);
         } catch (Exception e) {
@@ -503,9 +514,13 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
             return true;
         }
 
+        @RequiresApi(api = Build.VERSION_CODES.O)
         @Override
         public void onPageFinished(WebView view, String url) {
             super.onPageFinished(view, url);
+            webView.setBackgroundResource(0);
+           // webView.setLayerType(View.LAYER_TYPE_SOFTWARE,null);
+
         }
 
         @Override
