@@ -21,6 +21,7 @@ public class CommonUtils {
         String url =serviceAddress+ "user/updateJpushDevice";
         OkHttpClient client = new OkHttpClient();
         Map map = new HashMap();
+        map.put("udid","1111111");
         map.put("userid",userid);
         map.put("jpushId",jpushRegistId);
         map.put("osType","0");

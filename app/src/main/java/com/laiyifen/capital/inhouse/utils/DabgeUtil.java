@@ -40,9 +40,7 @@ public class DabgeUtil {
             method.invoke(extraNotification, mCount);
             mNotificationManager.notify(0, notification);
         } catch (Exception e) {
-
             e.printStackTrace();
-
         }
 //        Intent intent = new Intent("launcher.action.CHANGE_APPLICATION_NOTIFICATION_NUM");
 //        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);

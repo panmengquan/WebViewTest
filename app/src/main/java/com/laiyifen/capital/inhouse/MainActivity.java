@@ -47,15 +47,6 @@ import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.ProtocolException;
-import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -117,7 +108,7 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
         webView.setWebViewClient(new MyWebviewClient());
         String url = serviceAddress + "menus/index";
         webView.loadUrl(serviceAddress + "menus/index");
-
+       // webView.loadUrl("file:///android_asset/test.html");
     }
     //登录成功后js写法为: window.androidBridge.getIvUser("当js判断登录成功后,js返回给anroid的登录账号")
     //如：<a onClick="window.androidBridge.getIvUser('00060433')" />
@@ -174,12 +165,12 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
     }
 
     private void initWebViewQuit() {
-        //        webView.clearCache(true);
         clearCash();
-        webView.getSettings().setJavaScriptEnabled(true);//是否允许执行js，默认为false。设置true时，会提醒可能造成XSS漏洞
+        //是否允许执行js，默认为false。设置true时，会提醒可能造成XSS漏洞
+        webView.getSettings().setJavaScriptEnabled(true);
+
         //设置WebView缓存模式 默认断网情况下不缓存
         webView.getSettings().setCacheMode(WebSettings.LOAD_DEFAULT);
-
 
         webView.getSettings().setLoadWithOverviewMode(true);
         //断网情况下加载本地缓存
@@ -206,8 +197,6 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
         //设置在WebView内部是否允许访问文件
         webView.getSettings().setAllowFileAccess(true);
 
-        //设置WebView的访问UserAgent
-
         //设置脚本是否允许自动打开弹窗
         webView.getSettings().setJavaScriptCanOpenWindowsAutomatically(true);
 
@@ -217,25 +206,17 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
         } else {
             webView.getSettings().setLoadsImagesAutomatically(false);
         }
-
-
         // 开启Application H5 Caches 功能
         webView.getSettings().setAppCacheEnabled(true);
         webView.getSettings().setBlockNetworkImage(false);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             webView.getSettings().setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         }
-
         // 设置编码格式
         webView.getSettings().setDefaultTextEncodingName("utf-8");
         webView.setDownloadListener(new DownloadListener() {
             @Override
             public void onDownloadStart(String url, String userAgent, String contentDisposition, String mimeType, long contentLength) {
-                // H5中包含下载链接的话让外部浏览器去处理
-                //                Intent intent = new Intent(Intent.ACTION_VIEW);
-                //                intent.addCategory(Intent.CATEGORY_BROWSABLE);
-                //                intent.setData(Uri.parse(url));
-                //                startActivity(intent);
                 downLoadUrl = url;
                 downUserMimeType = mimeType;
                 downContentDisposition = contentDisposition;
@@ -249,16 +230,15 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
     protected void onResume() {
         super.onResume();
         DabgeUtil.SetDabge(MainActivity.this,0);
-
+//        if(!"".equals(registrationID) ){
+//            CommonUtils.upLoadJpushId("00000112",registrationID,"1");
+//        }
     }
     @Override
     protected void onNewIntent(Intent intent) {
-        //super.onNewIntent(intent);
         super.onNewIntent(intent);
 
         String myurl = intent.getStringExtra("myurl");
-        String title = intent.getStringExtra("title");
-
         if(!"".equals(myurl) && myurl != null){
             webView.loadUrl(myurl);
         }
@@ -270,9 +250,6 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
         Log.v("myTag","jpushid="+registrationID);
         JPushInterface.setAlias(this, 1, registrationID);
 
-        if(!"".equals(registrationID) ){
-            CommonUtils.upLoadJpushId("00060433",registrationID,"1");
-        }
     }
 
     @OnClick({R.id.iv_return, R.id.iv_select})
@@ -311,7 +288,6 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
                             MyPreferencesUtils.putString(MyConstants.USER_ID,"");
                             CommonUtils.upLoadJpushId(MyPreferencesUtils.getString(MyConstants.USER_ID),registrationID,"0");
                             LodaNewClient(serviceAddress + "menus/index", "");
-                            MyApplication.setUserId("");
                         }
                     }
                 });
@@ -335,10 +311,8 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
     }
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void getEventBus(JPushMessageBean jPushMessageBean) {
-      String a;
         if(!"".equals(jPushMessageBean.getUrl())){
             surePayDialog( jPushMessageBean);
-
         }
 
     }
@@ -433,7 +407,6 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
             }
         });
 
-
         emailDilog.show();
         TextView tvPhoneName = emailDilog.findViewById(R.id.tv_email_name);
         tvPhoneName.setText("向" + address + "发送邮件");
@@ -519,8 +492,7 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
         public void onPageFinished(WebView view, String url) {
             super.onPageFinished(view, url);
             webView.setBackgroundResource(0);
-           // webView.setLayerType(View.LAYER_TYPE_SOFTWARE,null);
-
+            // webView.setLayerType(View.LAYER_TYPE_SOFTWARE,null);
         }
 
         @Override
@@ -537,7 +509,6 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
     }
     //WebChromeClient主要辅助WebView处理Javascript的对话框、网站图标、网站title、加载进度等
     private WebChromeClient webChromeClient = new WebChromeClient() {
-
 
         //不支持js的alert弹窗，需要自己监听然后通过dialog弹窗
         @Override
@@ -577,63 +548,10 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
             Log.i("myTag", "网页标题:" + title);
         }
     };
-
-    private void sendHttp(final String urlStr){
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                HttpURLConnection connection = null;
-                BufferedReader reader = null;
-                try {
-                    URL url = new URL(urlStr);
-                    connection = (HttpURLConnection) url.openConnection();
-                    //设置请求方法
-                    connection.setRequestMethod("POST");
-                    connection.setRequestProperty("username","00060433");
-                    connection.setRequestProperty("password","lyfbpm2018");
-                    //设置连接超时时间（毫秒）
-                    connection.setConnectTimeout(5000);
-                    //设置读取超时时间（毫秒）
-                    connection.setReadTimeout(5000);
-
-                    //返回输入流
-                    InputStream in = connection.getInputStream();
-
-                    //读取输入流
-                    reader = new BufferedReader(new InputStreamReader(in));
-                    StringBuilder result = new StringBuilder();
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        result.append(line);
-                    }
-                    String str = result.toString();
-                    WebResourceResponse  webResourceResponse = new WebResourceResponse("text/html", "utf-8", new ByteArrayInputStream(result.toString().getBytes()));
-                    String str1 = result.toString();
-                } catch (MalformedURLException e) {
-                    e.printStackTrace();
-                } catch (ProtocolException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } finally {
-                    if (reader != null) {
-                        try {
-                            reader.close();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                    if (connection != null) {//关闭连接
-                        connection.disconnect();
-                    }
-                }
-            }
-        }).start();
-    }
-
     private void surePayDialog(JPushMessageBean jPushMessageBean) {
         final IOSDialog dialog = new IOSDialog(MainActivity.this, R.style.customDialog,R.layout.ios_dilog_notitle);
         dialog.show();
+
         TextView tvOk = dialog.findViewById(R.id.ok);
         TextView cancel = dialog.findViewById(R.id.cancel);
         TextView tvMessage =  dialog.findViewById(R.id.tv_ios_message);
