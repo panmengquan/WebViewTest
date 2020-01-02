@@ -87,17 +87,24 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
     private String downContentDisposition;
     private String downLoadUrl;
     private String registrationID = "";
+    private MyWebviewClient myWebviewClient;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EventBus.getDefault().register(this);//注册
+
+        registrationID = JPushInterface.getRegistrationID(this);
+        Log.v("myTag","jpushid="+registrationID);
+        JPushInterface.setAlias(this, 1, registrationID);
+
         if (Build.VERSION.SDK_INT >= 21) {
             View decorView = getWindow().getDecorView();
             decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
         }
         setContentView(R.layout.activity_main);
+        myWebviewClient = new MyWebviewClient();
         webView = findViewById(R.id.wb_view);
         webView.setBackgroundColor(0);
         webView.setBackgroundResource(R.drawable.icon_background);
@@ -105,10 +112,10 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
         caculateManager.bindService(this, this, appKey, appSecret);
         initWebView();
         //initDialog();
-        webView.setWebViewClient(new MyWebviewClient());
+        webView.setWebViewClient(myWebviewClient);
         String url = serviceAddress + "menus/index";
-      webView.loadUrl(serviceAddress + "menus/index");
-       // webView.loadUrl("file:///android_asset/test.html");
+        webView.loadUrl(serviceAddress + "menus/index");
+        // webView.loadUrl("file:///android_asset/test.html");
     }
     //登录成功后js写法为: window.androidBridge.getIvUser("当js判断登录成功后,js返回给anroid的登录账号")
     //如：<a onClick="window.androidBridge.getIvUser('00060433')" />
@@ -116,11 +123,14 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
         @JavascriptInterface
         public void getIvUser(String ivUser){
             Log.v("myTag","JsInterface.ivuser"+ivUser);
+
             if(!"".equals(registrationID) ){
                 MyPreferencesUtils.putString(MyConstants.USER_ID,ivUser);
                 String userid = MyPreferencesUtils.getString(MyConstants.USER_ID);
                 CommonUtils.upLoadJpushId(ivUser,registrationID,"1");
             }
+
+
         }
     }
     private void initWebView() {
@@ -233,9 +243,9 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
         super.onResume();
         String userid = MyPreferencesUtils.getString(MyConstants.USER_ID);
         DabgeUtil.SetDabge(MainActivity.this,0);
-//        if(!"".equals(registrationID) ){
-//            CommonUtils.upLoadJpushId("00000112",registrationID,"1");
-//        }
+        //        if(!"".equals(registrationID) ){
+        //            CommonUtils.upLoadJpushId("00000112",registrationID,"1");
+        //        }
     }
     @Override
     protected void onNewIntent(Intent intent) {
@@ -249,9 +259,7 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
     @Override
     protected void onStart() {
         super.onStart();
-        registrationID = JPushInterface.getRegistrationID(this);
-        Log.v("myTag","jpushid="+registrationID);
-        JPushInterface.setAlias(this, 1, registrationID);
+
 
     }
 
@@ -259,12 +267,17 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
     public void myClick(View view) {
         switch (view.getId()) {
             case R.id.iv_return:
+                if(webView.getUrl().equals(serviceAddress+"/bpm/menus/my_mobile_Back?type='mobile")){
+                    webView.loadUrl(serviceAddress+"/bpm/menus/index");
+                    return;
+                }
                 if (webView.canGoBack()) {
                     webView.goBack();
                 }
                 if (webView.getTitle().equals("首页")) {
                     rlTopView.setVisibility(View.GONE);
                 }
+
                 break;
             case R.id.iv_select:
                 SetPopView setPopView = new SetPopView(this, new View.OnClickListener() {
@@ -288,8 +301,9 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
                         if (view.getId() == R.id.ll_logout) {
                             rlTopView.setVisibility(View.GONE);
                             initWebViewQuit();
-                            MyPreferencesUtils.putString(MyConstants.USER_ID,"");
+
                             CommonUtils.upLoadJpushId(MyPreferencesUtils.getString(MyConstants.USER_ID),registrationID,"0");
+                            MyPreferencesUtils.putString(MyConstants.USER_ID,"");
                             LodaNewClient(serviceAddress + "menus/index", "");
                         }
                     }
@@ -332,7 +346,13 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         Log.i("ansen", "是否有上一个页面:" + webView.canGoBack());
+        if(webView.getUrl().equals(serviceAddress+"/bpm/menus/my_mobile_Back?type='mobile")){
+            webView.loadUrl(serviceAddress+"/bpm/menus/index");
+            return true;
+        }
+
         if (webView.canGoBack() && keyCode == KeyEvent.KEYCODE_BACK) {//点击返回按钮的时候判断有没有上一页
+
             webView.goBack(); // goBack()表示返回webView的上一页面
             //是首页的情况隐藏顶部标题栏
             if (webView.getTitle().equals("首页")) {
@@ -378,7 +398,7 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
     private void LodaNewClient(String url, String userId) {
         Map<String, String> map = new HashMap();
         map.put("iv-user", userId);
-        webView.setWebViewClient(new MyWebviewClient());
+        webView.setWebViewClient(myWebviewClient);
         webView.loadUrl(url, map);
     }
 

@@ -23,11 +23,11 @@ public class MyJPushMessageReceiver  extends JPushMessageReceiver {
         super.onNotifyMessageArrived(context, notificationMessage);
         Log.v("myTag","onNotifyMessageArrived");
         try {
-            String notifiMessage =  notificationMessage.notificationExtras;
+          String notifiMessage =  notificationMessage.notificationExtras;
             JSONObject json = new JSONObject(notifiMessage);
             String badge = json.getString("badge");
             String url = json.getString("url");
-            String title = notificationMessage.notificationTitle;
+            String title = notificationMessage.notificationContent;
             //通知到达,设置角标
             DabgeUtil.SetDabge(context,Integer.parseInt(badge));
             //有账号，正在浏览,弹出对话框
@@ -58,8 +58,9 @@ public class MyJPushMessageReceiver  extends JPushMessageReceiver {
             JSONObject json = new JSONObject(notifiMessage);
             String badge = json.getString("badge");
             String url = json.getString("url");
-            String title = notificationMessage.notificationTitle;
+            String title = notificationMessage.notificationContent;
 
+            String str = MyPreferencesUtils.getString(MyConstants.USER_ID);
             //点击通知，如果用户未登录，则跳转登录页面(不带参数);否则跳转登录页面(带参数)
             if("".equals(MyPreferencesUtils.getString(MyConstants.USER_ID))) {
                 Intent intent = new Intent(context, MainActivity.class);

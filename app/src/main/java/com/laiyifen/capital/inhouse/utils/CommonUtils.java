@@ -22,7 +22,7 @@ public class CommonUtils {
         OkHttpClient client = new OkHttpClient();
         Map map = new HashMap();
         map.put("udid","1111111");
-        map.put("userid",userid);
+        map.put("userid",MyPreferencesUtils.getString(MyConstants.USER_ID));
         map.put("jpushId",jpushRegistId);
         map.put("osType","0");
         map.put("status",status);
