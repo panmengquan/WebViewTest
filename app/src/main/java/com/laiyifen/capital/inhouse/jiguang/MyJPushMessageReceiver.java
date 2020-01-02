@@ -31,6 +31,7 @@ public class MyJPushMessageReceiver  extends JPushMessageReceiver {
             //通知到达,设置角标
             DabgeUtil.SetDabge(context,Integer.parseInt(badge));
             //有账号，正在浏览,弹出对话框
+            String userid = MyPreferencesUtils.getString(MyConstants.USER_ID);
             if(!"".equals(MyPreferencesUtils.getString(MyConstants.USER_ID))) {
                 JPushMessageBean jPushMessageBean = new JPushMessageBean();
                 jPushMessageBean.setTitle(title);

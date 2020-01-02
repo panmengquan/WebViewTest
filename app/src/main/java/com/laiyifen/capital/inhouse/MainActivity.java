@@ -107,7 +107,7 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
         //initDialog();
         webView.setWebViewClient(new MyWebviewClient());
         String url = serviceAddress + "menus/index";
-        webView.loadUrl(serviceAddress + "menus/index");
+      webView.loadUrl(serviceAddress + "menus/index");
        // webView.loadUrl("file:///android_asset/test.html");
     }
     //登录成功后js写法为: window.androidBridge.getIvUser("当js判断登录成功后,js返回给anroid的登录账号")
@@ -115,8 +115,10 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
     public class JsInterface {
         @JavascriptInterface
         public void getIvUser(String ivUser){
+            Log.v("myTag","JsInterface.ivuser"+ivUser);
             if(!"".equals(registrationID) ){
                 MyPreferencesUtils.putString(MyConstants.USER_ID,ivUser);
+                String userid = MyPreferencesUtils.getString(MyConstants.USER_ID);
                 CommonUtils.upLoadJpushId(ivUser,registrationID,"1");
             }
         }
@@ -229,6 +231,7 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
     @Override
     protected void onResume() {
         super.onResume();
+        String userid = MyPreferencesUtils.getString(MyConstants.USER_ID);
         DabgeUtil.SetDabge(MainActivity.this,0);
 //        if(!"".equals(registrationID) ){
 //            CommonUtils.upLoadJpushId("00000112",registrationID,"1");
