@@ -38,6 +38,8 @@ import com.laiyifen.capital.inhouse.utils.DabgeUtil;
 import com.laiyifen.capital.inhouse.utils.DoloadUtils;
 import com.laiyifen.capital.inhouse.utils.MyConstants;
 import com.laiyifen.capital.inhouse.utils.MyPreferencesUtils;
+import com.laiyifen.capital.inhouse.utils.NotifyUtils;
+import com.laiyifen.capital.inhouse.utils.RomUtil;
 import com.laiyifen.capital.inhouse.widgets.BottomDialog;
 import com.laiyifen.capital.inhouse.widgets.IOSDialog;
 import com.laiyifen.capital.inhouse.widgets.SetPopView;
@@ -47,6 +49,8 @@ import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 import org.json.JSONObject;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -95,9 +99,14 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
         super.onCreate(savedInstanceState);
         EventBus.getDefault().register(this);//注册
 
+
         registrationID = JPushInterface.getRegistrationID(this);
         Log.v("myTag","jpushid="+registrationID);
         JPushInterface.setAlias(this, 1, registrationID);
+
+        if( RomUtil.isMiui() && !NotifyUtils.isNotificationEnabled(MyApplication.getContext())){
+            Toast.makeText(MainActivity.this,"应用未打开通知权限,请到设置里去打开通知权限!",Toast.LENGTH_LONG);
+        }
 
         if (Build.VERSION.SDK_INT >= 21) {
             View decorView = getWindow().getDecorView();
@@ -115,6 +124,11 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
         webView.setWebViewClient(myWebviewClient);
         String url = serviceAddress + "menus/index";
         webView.loadUrl(serviceAddress + "menus/index");
+
+        String myurl = getIntent().getStringExtra("myurl");
+        if(!"".equals(myurl) && myurl != null){
+            webView.loadUrl(myurl);
+        }
         // webView.loadUrl("file:///android_asset/test.html");
     }
     //登录成功后js写法为: window.androidBridge.getIvUser("当js判断登录成功后,js返回给anroid的登录账号")
@@ -251,10 +265,7 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
 
-        String myurl = intent.getStringExtra("myurl");
-        if(!"".equals(myurl) && myurl != null){
-            webView.loadUrl(myurl);
-        }
+
     }
     @Override
     protected void onStart() {
@@ -267,17 +278,23 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
     public void myClick(View view) {
         switch (view.getId()) {
             case R.id.iv_return:
-                if(webView.getUrl().equals(serviceAddress+"/bpm/menus/my_mobile_Back?type='mobile")){
-                    webView.loadUrl(serviceAddress+"/bpm/menus/index");
-                    return;
-                }
-                if (webView.canGoBack()) {
-                    webView.goBack();
-                }
-                if (webView.getTitle().equals("首页")) {
-                    rlTopView.setVisibility(View.GONE);
-                }
+                String url = webView.getUrl();
+                try {
+                    String   keyWord = URLDecoder.decode(webView.getUrl(), "UTF-8");
+                    if(keyWord.contains("/menus/my_mobile_Back?type='mobile")){
+                        webView.loadUrl(serviceAddress+"menus/index");
+                        return;
+                    }
+                    if (webView.canGoBack()) {
+                        webView.goBack();
+                    }
+                    if (webView.getTitle().equals("首页")) {
+                        rlTopView.setVisibility(View.GONE);
+                    }
 
+                } catch (UnsupportedEncodingException e) {
+                    e.printStackTrace();
+                }
                 break;
             case R.id.iv_select:
                 SetPopView setPopView = new SetPopView(this, new View.OnClickListener() {
@@ -346,19 +363,24 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         Log.i("ansen", "是否有上一个页面:" + webView.canGoBack());
-        if(webView.getUrl().equals(serviceAddress+"/bpm/menus/my_mobile_Back?type='mobile")){
-            webView.loadUrl(serviceAddress+"/bpm/menus/index");
-            return true;
-        }
-
-        if (webView.canGoBack() && keyCode == KeyEvent.KEYCODE_BACK) {//点击返回按钮的时候判断有没有上一页
-
-            webView.goBack(); // goBack()表示返回webView的上一页面
-            //是首页的情况隐藏顶部标题栏
-            if (webView.getTitle().equals("首页")) {
-                rlTopView.setVisibility(View.GONE);
+        String url = webView.getUrl();
+        try {
+            String   keyWord = URLDecoder.decode(webView.getUrl(), "UTF-8");
+            if(keyWord.contains("/menus/my_mobile_Back?type='mobile")){
+                webView.loadUrl(serviceAddress+"menus/index");
+                return true;
             }
-            return true;
+            if (webView.canGoBack() && keyCode == KeyEvent.KEYCODE_BACK) {//点击返回按钮的时候判断有没有上一页
+
+                webView.goBack(); // goBack()表示返回webView的上一页面
+                //是首页的情况隐藏顶部标题栏
+                if (webView.getTitle().equals("首页")) {
+                    rlTopView.setVisibility(View.GONE);
+                }
+                return true;
+            }
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
         }
         return super.onKeyDown(keyCode, event);
     }
