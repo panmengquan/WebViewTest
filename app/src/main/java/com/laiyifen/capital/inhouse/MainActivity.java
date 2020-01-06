@@ -49,8 +49,6 @@ import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 import org.json.JSONObject;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -122,14 +120,13 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
         initWebView();
         //initDialog();
         webView.setWebViewClient(myWebviewClient);
-        String url = serviceAddress + "menus/index";
         webView.loadUrl(serviceAddress + "menus/index");
-
+        //  webView.loadUrl("file:///android_asset/test1.html");
         String myurl = getIntent().getStringExtra("myurl");
         if(!"".equals(myurl) && myurl != null){
             webView.loadUrl(myurl);
         }
-        // webView.loadUrl("file:///android_asset/test.html");
+
     }
     //登录成功后js写法为: window.androidBridge.getIvUser("当js判断登录成功后,js返回给anroid的登录账号")
     //如：<a onClick="window.androidBridge.getIvUser('00060433')" />
@@ -279,22 +276,17 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
         switch (view.getId()) {
             case R.id.iv_return:
                 String url = webView.getUrl();
-                try {
-                    String   keyWord = URLDecoder.decode(webView.getUrl(), "UTF-8");
-                    if(keyWord.contains("/menus/my_mobile_Back?type='mobile")){
-                        webView.loadUrl(serviceAddress+"menus/index");
-                        return;
-                    }
-                    if (webView.canGoBack()) {
-                        webView.goBack();
-                    }
-                    if (webView.getTitle().equals("首页")) {
-                        rlTopView.setVisibility(View.GONE);
-                    }
+                //                    String   keyWord = URLDecoder.decode(webView.getUrl(), "UTF-8");
+                //                    if(keyWord.contains("/menus/my_mobile_Back?type='mobile")){
+                //                        webView.loadUrl(serviceAddress+"menus/index");
+                //                        return;
+                //                    }
 
-                } catch (UnsupportedEncodingException e) {
-                    e.printStackTrace();
+                if (webView.canGoBack()) {
+                    webView.goBack();
                 }
+
+
                 break;
             case R.id.iv_select:
                 SetPopView setPopView = new SetPopView(this, new View.OnClickListener() {
@@ -363,26 +355,19 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         Log.i("ansen", "是否有上一个页面:" + webView.canGoBack());
-        String url = webView.getUrl();
-        try {
-            String   keyWord = URLDecoder.decode(webView.getUrl(), "UTF-8");
-            if(keyWord.contains("/menus/my_mobile_Back?type='mobile")){
-                webView.loadUrl(serviceAddress+"menus/index");
-                return true;
-            }
-            if (webView.canGoBack() && keyCode == KeyEvent.KEYCODE_BACK) {//点击返回按钮的时候判断有没有上一页
-
+        if (webView.canGoBack() && keyCode == KeyEvent.KEYCODE_BACK) {//点击返回按钮的时候判断有没有上一页
+            //是首页的情况隐藏顶部标题栏
+            if (webView.getTitle().equals("首页")) {
+                return  true;
+            }else {
                 webView.goBack(); // goBack()表示返回webView的上一页面
-                //是首页的情况隐藏顶部标题栏
-                if (webView.getTitle().equals("首页")) {
-                    rlTopView.setVisibility(View.GONE);
-                }
                 return true;
             }
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
+
         }
-        return super.onKeyDown(keyCode, event);
+
+       // return super.onKeyDown(keyCode, event);
+        return false;
     }
 
     @Override
@@ -537,6 +522,11 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
         public void onPageFinished(WebView view, String url) {
             super.onPageFinished(view, url);
             webView.setBackgroundResource(0);
+            if (webView.getTitle().equals("首页")) {
+                findViewById(R.id.iv_return).setVisibility(View.GONE);
+            }else {
+                findViewById(R.id.iv_return).setVisibility(View.GONE);
+            }
             // webView.setLayerType(View.LAYER_TYPE_SOFTWARE,null);
         }
 
