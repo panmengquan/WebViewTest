@@ -2,6 +2,7 @@ package com.laiyifen.capital.inhouse;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.ProgressDialog;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
@@ -10,6 +11,7 @@ import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -43,22 +45,33 @@ import com.laiyifen.capital.inhouse.utils.RomUtil;
 import com.laiyifen.capital.inhouse.widgets.BottomDialog;
 import com.laiyifen.capital.inhouse.widgets.IOSDialog;
 import com.laiyifen.capital.inhouse.widgets.SetPopView;
+import com.squareup.okhttp.Callback;
+import com.squareup.okhttp.MediaType;
+import com.squareup.okhttp.OkHttpClient;
+import com.squareup.okhttp.Request;
+import com.squareup.okhttp.Response;
+import com.zhy.http.okhttp.OkHttpUtils;
+import com.zhy.http.okhttp.callback.FileCallBack;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
+import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.FileProvider;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
-import cn.jpush.android.api.JPushInterface;
+import okhttp3.Call;
 import permissions.dispatcher.NeedsPermission;
 import permissions.dispatcher.OnNeverAskAgain;
 import permissions.dispatcher.OnPermissionDenied;
@@ -74,6 +87,8 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
     private CaculateManager caculateManager = new CaculateManager();
     private String          mTitle;
     private String          mUrl;
+    private String          fileName = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath()+File.separator+"aiwu.apk";
+
 
     @BindView(R.id.tv_title)
     TextView       tvTitle;
@@ -88,7 +103,6 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
     private String downUserMimeType;
     private String downContentDisposition;
     private String downLoadUrl;
-    private String registrationID = "";
     private MyWebviewClient myWebviewClient;
 
 
@@ -96,11 +110,6 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EventBus.getDefault().register(this);//注册
-
-
-        registrationID = JPushInterface.getRegistrationID(this);
-        Log.v("myTag","jpushid="+registrationID);
-        JPushInterface.setAlias(this, 1, registrationID);
 
         if( RomUtil.isMiui() && !NotifyUtils.isNotificationEnabled(MyApplication.getContext())){
             Toast.makeText(MainActivity.this,"应用未打开通知权限,请到设置里去打开通知权限!",Toast.LENGTH_LONG);
@@ -111,6 +120,7 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
             decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
         }
         setContentView(R.layout.activity_main);
+
         myWebviewClient = new MyWebviewClient();
         webView = findViewById(R.id.wb_view);
         webView.setBackgroundColor(0);
@@ -121,7 +131,7 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
         //initDialog();
         webView.setWebViewClient(myWebviewClient);
         webView.loadUrl(serviceAddress + "menus/index");
-        //  webView.loadUrl("file:///android_asset/test1.html");
+        //  webView.loadUrl("myFile:///android_asset/test1.html");
         String myurl = getIntent().getStringExtra("myurl");
         if(!"".equals(myurl) && myurl != null){
             webView.loadUrl(myurl);
@@ -134,11 +144,11 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
         @JavascriptInterface
         public void getIvUser(String ivUser){
             Log.v("myTag","JsInterface.ivuser"+ivUser);
-
-            if(!"".equals(registrationID) ){
+            String jpushId = MyApplication.getJpushId();
+            if(!"".equals(MyApplication.getJpushId()) ){
                 MyPreferencesUtils.putString(MyConstants.USER_ID,ivUser);
                 String userid = MyPreferencesUtils.getString(MyConstants.USER_ID);
-                CommonUtils.upLoadJpushId(ivUser,registrationID,"1");
+                CommonUtils.upLoadJpushId(ivUser,MyApplication.getJpushId(),"1");
             }
 
 
@@ -181,7 +191,7 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
                 downLoadUrl = url;
                 downUserMimeType = mimeType;
                 downContentDisposition = contentDisposition;
-                getPermission();
+                DoloadUtils.downloadBySystem(MainActivity.this,downLoadUrl,downContentDisposition,downUserMimeType);
             }
         });
         webView.setWebChromeClient(webChromeClient);
@@ -243,7 +253,7 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
                 downLoadUrl = url;
                 downUserMimeType = mimeType;
                 downContentDisposition = contentDisposition;
-                getPermission();
+                DoloadUtils.downloadBySystem(MainActivity.this,downLoadUrl,downContentDisposition,downUserMimeType);
             }
         });
         webView.setWebChromeClient(webChromeClient);
@@ -252,11 +262,8 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
     @Override
     protected void onResume() {
         super.onResume();
-        String userid = MyPreferencesUtils.getString(MyConstants.USER_ID);
         DabgeUtil.SetDabge(MainActivity.this,0);
-        //        if(!"".equals(registrationID) ){
-        //            CommonUtils.upLoadJpushId("00000112",registrationID,"1");
-        //        }
+        // UpdateFunGO.onResume(this);
     }
     @Override
     protected void onNewIntent(Intent intent) {
@@ -267,7 +274,8 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
     @Override
     protected void onStart() {
         super.onStart();
-
+        getPermission();
+        getUpdateVersionInfo();
 
     }
 
@@ -311,7 +319,7 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
                             rlTopView.setVisibility(View.GONE);
                             initWebViewQuit();
 
-                            CommonUtils.upLoadJpushId(MyPreferencesUtils.getString(MyConstants.USER_ID),registrationID,"0");
+                            CommonUtils.upLoadJpushId(MyPreferencesUtils.getString(MyConstants.USER_ID),MyApplication.getJpushId(),"0");
                             MyPreferencesUtils.putString(MyConstants.USER_ID,"");
                             LodaNewClient(serviceAddress + "menus/index", "");
                         }
@@ -348,6 +356,7 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
         super.onDestroy();
         EventBus.getDefault().unregister(this);
         caculateManager.unbindService();
+        //UpdateFunGO.onStop(this);
     }
 
 
@@ -366,7 +375,7 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
 
         }
 
-       // return super.onKeyDown(keyCode, event);
+        // return super.onKeyDown(keyCode, event);
         return false;
     }
 
@@ -388,8 +397,8 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
             JSONObject object1 = new JSONObject(object.getString("data"));
             String userId = object1.getString("user_id");
             MyPreferencesUtils.putString(MyConstants.USER_ID,userId);
-            if(!"".equals(registrationID) && !"".equals(userId)){
-                CommonUtils.upLoadJpushId(userId,registrationID,"1");
+            if(!"".equals(MyApplication.getJpushId()) && !"".equals(userId)){
+                CommonUtils.upLoadJpushId(userId,MyApplication.getJpushId(),"1");
             }
             LodaNewClient(serviceAddress + "portal", userId);
         } catch (Exception e) {
@@ -479,7 +488,6 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
     @NeedsPermission({Manifest.permission.WRITE_EXTERNAL_STORAGE})
     public void getMulti() {
         Log.v("myTag","getMulti");
-        DoloadUtils.downloadBySystem(MainActivity.this,downLoadUrl,downContentDisposition,downUserMimeType);
     }
     @OnPermissionDenied({Manifest.permission.READ_PHONE_STATE})//一旦用户拒绝了
     public void multiDenied() {
@@ -525,7 +533,7 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
             if (webView.getTitle().equals("首页")) {
                 findViewById(R.id.iv_return).setVisibility(View.GONE);
             }else {
-                findViewById(R.id.iv_return).setVisibility(View.GONE);
+                findViewById(R.id.iv_return).setVisibility(View.VISIBLE);
             }
             // webView.setLayerType(View.LAYER_TYPE_SOFTWARE,null);
         }
@@ -601,5 +609,133 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
         cancel.setOnClickListener(v -> { //上笔
             dialog.dismiss();
         });
+    }
+    public  void getUpdateVersionInfo() {
+        final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+        OkHttpClient client = new OkHttpClient();
+        Request request = new Request.Builder()
+                .url(MyConstants.UPDATE_VERSION_INFO)
+                .get()
+                .build();
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Request request, IOException e) {
+                request.toString();
+
+            }
+            @Override
+            public void onResponse(Response response) throws IOException {
+                try {
+                    if (response.isSuccessful()) {
+                        String json = response.body().string();
+                        JSONObject jsObject = new JSONObject(json);
+                        String currentVersion = CommonUtils.getVersion(MyApplication.getContext());
+                        String fwqVersion = jsObject.getString("versionShort");
+                        if( -1 == CommonUtils.compareVersion(currentVersion,fwqVersion)){
+                            String updateUrl = jsObject.getString("installUrl");
+                            String updateInfo = jsObject.getString("changelog");
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    sureUpdateDilog(updateUrl,updateInfo);
+                                }
+                            });
+
+
+                        }
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
+
+    private void sureUpdateDilog(String url,String updateLog) {
+        final IOSDialog dialog = new IOSDialog(MainActivity.this, R.style.customDialog,R.layout.ios_dilog_hava_title);
+        dialog.show();
+
+        TextView tvOk = dialog.findViewById(R.id.ok);
+        TextView cancel = dialog.findViewById(R.id.cancel);
+        TextView tvTitle =  dialog.findViewById(R.id.tv_ios_title);
+        tvTitle.setText("检测到新的版本");
+        tvOk.setText("立即更新");
+        TextView tvMessage =  dialog.findViewById(R.id.tv_ios_message);
+        tvMessage.setText(updateLog+"");
+
+        tvOk.setOnClickListener(v -> { //本次
+            dialog.dismiss();
+            //调用订单结算接口
+            File file = new File(fileName);
+            if(file.exists()){
+                file.delete();
+            }
+            downloadApk(url);
+
+        });
+        cancel.setOnClickListener(v -> { //上笔
+            dialog.dismiss();
+        });
+    }
+    private void downloadApk(String url){
+
+        final ProgressDialog updateDialog = new ProgressDialog(this);
+        updateDialog.setTitle("正在下载");
+        //dialog.setMessage(version.getDes() + "");
+        updateDialog.setCancelable(false);
+        updateDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+        updateDialog.show();
+
+        OkHttpUtils
+                .get()
+                .url(url)
+                .build()
+                .execute(new FileCallBack(Environment
+                        .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath(), "aiwu.apk") {
+                    @Override
+                    public void onError(Call call, Exception e, int id) {
+                        Toast.makeText(MainActivity.this,"下载更新包失败",Toast.LENGTH_LONG).show();
+                        updateDialog.dismiss();
+                    }
+
+                    @Override
+                    public void onResponse(File response, int id) {
+                        try {
+                            // 没有挂载SD卡，无法下载文件
+                            updateDialog.dismiss();
+                            updateDialog.setTitle("下载完成");
+                                installAPK();
+                        } catch (Exception e) {
+                            e.toString();
+                            updateDialog.dismiss();
+                        }
+
+                    }
+
+                    @Override
+                    public void inProgress(float progress, long total, int id) {
+
+                        Log.d("pro==========",progress + "");
+                        super.inProgress(progress, total, id);
+                        updateDialog.setProgress((int) (100 * progress));
+                    }
+                });
+    }
+    private void installAPK() {
+        try {
+            Intent install = new Intent(Intent.ACTION_VIEW);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) { //判读版本是否在7.0以上
+                Uri apkUri = FileProvider.getUriForFile(getApplicationContext(), MyApplication.getContext().getPackageName()+".FileProvider",new File(fileName));
+                install.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                install.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION); //添加这一句表示对目标应用临时授权该Uri所代表的文件
+                install.setDataAndType(apkUri, "application/vnd.android.package-archive");
+            } else {
+                install.setDataAndType(Uri.fromFile(new File(fileName)), "application/vnd.android.package-archive");
+                install.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            }
+            startActivity(install);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

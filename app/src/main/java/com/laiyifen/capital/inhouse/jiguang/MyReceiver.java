@@ -8,6 +8,7 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.laiyifen.capital.inhouse.MainActivity;
+import com.laiyifen.capital.inhouse.MyApplication;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -38,6 +39,7 @@ public class MyReceiver extends BroadcastReceiver {
 			String extras = bundle.getString(JPushInterface.EXTRA_EXTRA);
 			if (JPushInterface.ACTION_REGISTRATION_ID.equals(intent.getAction())) {
 				String regId = bundle.getString(JPushInterface.EXTRA_REGISTRATION_ID);
+				MyApplication.setJpushId(regId);
 				Logger.d(TAG, "[MyReceiver] 接收Registration Id : " + regId);
 				//send the Registration Id to your server...
 
