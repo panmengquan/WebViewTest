@@ -7,7 +7,7 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.laiyifen.capital.inhouse.MainActivity;
+import com.laiyifen.capital.inhouse.main.MainActivity;
 import com.laiyifen.capital.inhouse.MyApplication;
 
 import org.json.JSONException;

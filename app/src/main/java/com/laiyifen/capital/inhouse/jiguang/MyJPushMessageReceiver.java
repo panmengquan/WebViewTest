@@ -4,7 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
 
-import com.laiyifen.capital.inhouse.MainActivity;
+import com.laiyifen.capital.inhouse.main.MainActivity;
 import com.laiyifen.capital.inhouse.bean.JPushMessageBean;
 import com.laiyifen.capital.inhouse.utils.DabgeUtil;
 import com.laiyifen.capital.inhouse.utils.MyConstants;

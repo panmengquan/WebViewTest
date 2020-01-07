@@ -17,11 +17,14 @@ import com.squareup.okhttp.Request;
 import com.squareup.okhttp.RequestBody;
 import com.squareup.okhttp.Response;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import static com.laiyifen.capital.inhouse.MainActivity.serviceAddress;
+import androidx.core.content.FileProvider;
+
+import static com.laiyifen.capital.inhouse.main.MainActivity.serviceAddress;
 
 public class CommonUtils {
     public static void upLoadJpushId(String userid,String jpushRegistId,String status) {
@@ -157,6 +160,22 @@ public class CommonUtils {
             return diff > 0 ? 1 : -1;
         }
     }
-
+    public static void installAPK(String fileName) {
+        try {
+            Intent install = new Intent(Intent.ACTION_VIEW);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) { //判读版本是否在7.0以上
+                Uri apkUri = FileProvider.getUriForFile(MyApplication.getContext(), MyApplication.getContext().getPackageName()+".FileProvider",new File(fileName));
+                install.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                install.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION); //添加这一句表示对目标应用临时授权该Uri所代表的文件
+                install.setDataAndType(apkUri, "application/vnd.android.package-archive");
+            } else {
+                install.setDataAndType(Uri.fromFile(new File(fileName)), "application/vnd.android.package-archive");
+                install.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            }
+            MyApplication.getContext().startActivity(install);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
 }

@@ -1,8 +1,7 @@
-package com.laiyifen.capital.inhouse;
+package com.laiyifen.capital.inhouse.main;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
-import android.app.ProgressDialog;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
@@ -34,6 +33,9 @@ import android.widget.Toast;
 
 import com.example.lyfloginlibrary.CaculateManager;
 import com.example.lyfloginlibrary.sync.SyncManager;
+import com.laiyifen.capital.inhouse.BuildConfig;
+import com.laiyifen.capital.inhouse.MyApplication;
+import com.laiyifen.capital.inhouse.R;
 import com.laiyifen.capital.inhouse.bean.JPushMessageBean;
 import com.laiyifen.capital.inhouse.utils.CommonUtils;
 import com.laiyifen.capital.inhouse.utils.DabgeUtil;
@@ -45,33 +47,22 @@ import com.laiyifen.capital.inhouse.utils.RomUtil;
 import com.laiyifen.capital.inhouse.widgets.BottomDialog;
 import com.laiyifen.capital.inhouse.widgets.IOSDialog;
 import com.laiyifen.capital.inhouse.widgets.SetPopView;
-import com.squareup.okhttp.Callback;
-import com.squareup.okhttp.MediaType;
-import com.squareup.okhttp.OkHttpClient;
-import com.squareup.okhttp.Request;
-import com.squareup.okhttp.Response;
-import com.zhy.http.okhttp.OkHttpUtils;
-import com.zhy.http.okhttp.callback.FileCallBack;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.FileProvider;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
-import okhttp3.Call;
 import permissions.dispatcher.NeedsPermission;
 import permissions.dispatcher.OnNeverAskAgain;
 import permissions.dispatcher.OnPermissionDenied;
@@ -79,7 +70,7 @@ import permissions.dispatcher.RuntimePermissions;
 
 @RuntimePermissions
 @SuppressLint("SetJavaScriptEnabled")
-public class MainActivity extends AppCompatActivity implements SyncManager.DownloadSyncDelegate {
+public class MainActivity extends AppCompatActivity implements SyncManager.DownloadSyncDelegate,MainView {
 
     private WebView         webView;
     private String          appKey          = "f72953b68fb1489f926293beb8b5f39e";
@@ -88,6 +79,7 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
     private String          mTitle;
     private String          mUrl;
     private String          fileName = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath()+File.separator+"aiwu.apk";
+    private MainPresenter mMainPresenter ;
 
 
     @BindView(R.id.tv_title)
@@ -120,6 +112,7 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
             decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
         }
         setContentView(R.layout.activity_main);
+        mMainPresenter = new MainPresenter(this);
 
         myWebviewClient = new MyWebviewClient();
         webView = findViewById(R.id.wb_view);
@@ -138,6 +131,23 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
         }
 
     }
+
+    @Override
+    public void onDownloadApkSuccess() {
+        CommonUtils.installAPK(fileName);
+    }
+
+    @Override
+    public void getVersionInfoSuccess(String updateUrl, String updateInfo) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                sureUpdateDilog(updateUrl,updateInfo);
+            }
+        });
+
+    }
+
     //登录成功后js写法为: window.androidBridge.getIvUser("当js判断登录成功后,js返回给anroid的登录账号")
     //如：<a onClick="window.androidBridge.getIvUser('00060433')" />
     public class JsInterface {
@@ -265,18 +275,12 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
         DabgeUtil.SetDabge(MainActivity.this,0);
         // UpdateFunGO.onResume(this);
     }
-    @Override
-    protected void onNewIntent(Intent intent) {
-        super.onNewIntent(intent);
 
-
-    }
     @Override
     protected void onStart() {
         super.onStart();
         getPermission();
-        getUpdateVersionInfo();
-
+        mMainPresenter.getUpdateVersionInfo();
     }
 
     @OnClick({R.id.iv_return, R.id.iv_select})
@@ -284,17 +288,9 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
         switch (view.getId()) {
             case R.id.iv_return:
                 String url = webView.getUrl();
-                //                    String   keyWord = URLDecoder.decode(webView.getUrl(), "UTF-8");
-                //                    if(keyWord.contains("/menus/my_mobile_Back?type='mobile")){
-                //                        webView.loadUrl(serviceAddress+"menus/index");
-                //                        return;
-                //                    }
-
                 if (webView.canGoBack()) {
                     webView.goBack();
                 }
-
-
                 break;
             case R.id.iv_select:
                 SetPopView setPopView = new SetPopView(this, new View.OnClickListener() {
@@ -352,14 +348,10 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
     }
     @Override
     protected void onDestroy() {
-        // clearCash();
         super.onDestroy();
         EventBus.getDefault().unregister(this);
         caculateManager.unbindService();
-        //UpdateFunGO.onStop(this);
     }
-
-
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
@@ -374,7 +366,6 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
             }
 
         }
-
         // return super.onKeyDown(keyCode, event);
         return false;
     }
@@ -610,46 +601,6 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
             dialog.dismiss();
         });
     }
-    public  void getUpdateVersionInfo() {
-        final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
-        OkHttpClient client = new OkHttpClient();
-        Request request = new Request.Builder()
-                .url(MyConstants.UPDATE_VERSION_INFO)
-                .get()
-                .build();
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(Request request, IOException e) {
-                request.toString();
-
-            }
-            @Override
-            public void onResponse(Response response) throws IOException {
-                try {
-                    if (response.isSuccessful()) {
-                        String json = response.body().string();
-                        JSONObject jsObject = new JSONObject(json);
-                        String currentVersion = CommonUtils.getVersion(MyApplication.getContext());
-                        String fwqVersion = jsObject.getString("versionShort");
-                        if( -1 == CommonUtils.compareVersion(currentVersion,fwqVersion)){
-                            String updateUrl = jsObject.getString("installUrl");
-                            String updateInfo = jsObject.getString("changelog");
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    sureUpdateDilog(updateUrl,updateInfo);
-                                }
-                            });
-
-
-                        }
-                    }
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-    }
 
     private void sureUpdateDilog(String url,String updateLog) {
         final IOSDialog dialog = new IOSDialog(MainActivity.this, R.style.customDialog,R.layout.ios_dilog_hava_title);
@@ -670,72 +621,13 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
             if(file.exists()){
                 file.delete();
             }
-            downloadApk(url);
+         //下载apk
+            mMainPresenter.startDownload(url);
 
         });
         cancel.setOnClickListener(v -> { //上笔
             dialog.dismiss();
         });
     }
-    private void downloadApk(String url){
 
-        final ProgressDialog updateDialog = new ProgressDialog(this);
-        updateDialog.setTitle("正在下载");
-        //dialog.setMessage(version.getDes() + "");
-        updateDialog.setCancelable(false);
-        updateDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-        updateDialog.show();
-
-        OkHttpUtils
-                .get()
-                .url(url)
-                .build()
-                .execute(new FileCallBack(Environment
-                        .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath(), "aiwu.apk") {
-                    @Override
-                    public void onError(Call call, Exception e, int id) {
-                        Toast.makeText(MainActivity.this,"下载更新包失败",Toast.LENGTH_LONG).show();
-                        updateDialog.dismiss();
-                    }
-
-                    @Override
-                    public void onResponse(File response, int id) {
-                        try {
-                            // 没有挂载SD卡，无法下载文件
-                            updateDialog.dismiss();
-                            updateDialog.setTitle("下载完成");
-                                installAPK();
-                        } catch (Exception e) {
-                            e.toString();
-                            updateDialog.dismiss();
-                        }
-
-                    }
-
-                    @Override
-                    public void inProgress(float progress, long total, int id) {
-
-                        Log.d("pro==========",progress + "");
-                        super.inProgress(progress, total, id);
-                        updateDialog.setProgress((int) (100 * progress));
-                    }
-                });
-    }
-    private void installAPK() {
-        try {
-            Intent install = new Intent(Intent.ACTION_VIEW);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) { //判读版本是否在7.0以上
-                Uri apkUri = FileProvider.getUriForFile(getApplicationContext(), MyApplication.getContext().getPackageName()+".FileProvider",new File(fileName));
-                install.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                install.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION); //添加这一句表示对目标应用临时授权该Uri所代表的文件
-                install.setDataAndType(apkUri, "application/vnd.android.package-archive");
-            } else {
-                install.setDataAndType(Uri.fromFile(new File(fileName)), "application/vnd.android.package-archive");
-                install.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            }
-            startActivity(install);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
 }

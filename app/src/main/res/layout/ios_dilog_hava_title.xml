@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="275dp"
+    android:layout_height="wrap_content"
+    android:background="@drawable/shape_dialog_ios"
+    android:orientation="vertical">
+    <TextView
+        android:textColor="#ff000000"
+        android:id="@+id/tv_ios_title"
+        android:layout_width="match_parent"
+        android:gravity="center"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="5dp"
+        android:layout_height="wrap_content"
+        android:padding="5dp"
+        android:textSize="18sp"/>
+
+    <TextView
+        android:textColor="#ff000000"
+        android:id="@+id/tv_ios_message"
+        android:layout_width="match_parent"
+        android:gravity="center"
+        android:layout_marginBottom="10dp"
+        android:layout_height="wrap_content"
+        android:padding="5dp"
+        android:textSize="16sp"/>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0.5dp"
+        android:background="#acacac"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="50dp">
+        <TextView
+            android:id="@+id/cancel"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="忽略"
+            android:textColor="#ff000000"
+            android:textSize="15sp"/>
+        <View
+            android:layout_width="1dp"
+            android:layout_height="match_parent"
+            android:background="#acacac"/>
+        <TextView
+            android:id="@+id/ok"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="查看"
+            android:textColor="#ff000000"
+            android:textSize="15sp"/>
+    </LinearLayout>
+</LinearLayout>
+

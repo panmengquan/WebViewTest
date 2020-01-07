@@ -9,7 +9,7 @@ import android.content.Intent;
 import android.os.Build;
 import android.util.Log;
 
-import com.laiyifen.capital.inhouse.MainActivity;
+import com.laiyifen.capital.inhouse.main.MainActivity;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
