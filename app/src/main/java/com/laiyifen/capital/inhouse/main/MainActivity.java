@@ -121,10 +121,12 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
         ButterKnife.bind(this);
         caculateManager.bindService(this, this, appKey, appSecret);
         initWebView();
-        //initDialog();
         webView.setWebViewClient(myWebviewClient);
-        webView.loadUrl(serviceAddress + "menus/index");
-        //  webView.loadUrl("myFile:///android_asset/test1.html");
+
+         webView.loadUrl(serviceAddress + "menus/index");
+        // webView.loadUrl("file:///android_asset/test.html");
+      //  webView.loadUrl("https://www.desmart.com.cn/pep/test.html");
+
         String myurl = getIntent().getStringExtra("myurl");
         if(!"".equals(myurl) && myurl != null){
             webView.loadUrl(myurl);
@@ -160,8 +162,6 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
                 String userid = MyPreferencesUtils.getString(MyConstants.USER_ID);
                 CommonUtils.upLoadJpushId(ivUser,MyApplication.getJpushId(),"1");
             }
-
-
         }
     }
     private void initWebView() {
@@ -302,7 +302,7 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
                         }
                         //分享
                         if (view.getId() == R.id.ll_share) {
-                            //分享文字
+                            // 分享文字
                             Intent textIntent = new Intent(Intent.ACTION_SEND);
                             textIntent.setType("text/plain");
                             textIntent.putExtra(Intent.EXTRA_TEXT, "【"+mTitle+"】\r"+mUrl);
@@ -621,7 +621,7 @@ public class MainActivity extends AppCompatActivity implements SyncManager.Downl
             if(file.exists()){
                 file.delete();
             }
-         //下载apk
+            //下载apk
             mMainPresenter.startDownload(url);
 
         });

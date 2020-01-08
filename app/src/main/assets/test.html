@@ -7,7 +7,9 @@
 
 <body>
 
-<button onclick="inviteBtn()">点我验证</button>
+<button onclick="inviteBtn()">js交互</button>
+<a href="pepmip://www.com/goodslist?email=1111">打开商品详情</a>
+<button onclick="copyStr()">点我复制剪贴板</button>
 <script>
     function inviteBtn(){
     var u = navigator.userAgent;
@@ -15,6 +17,14 @@
     if(isAndroid){
       window.androidBridge.getIvUser("123333");
        }
+    }
+     function copyStr(){
+    var save = function (e){
+　　　　　　e.clipboardData.setData('text/plain','mengquan1');//下面会说到clipboardData对象
+　　　　　　e.preventDefault();//阻止默认行为
+　　　　}
+　　　　document.addEventListener('copy',save);
+　　　　document.execCommand("copy");//使文档处于可编辑状态，否则无效
     }
 </script>
 </body>
